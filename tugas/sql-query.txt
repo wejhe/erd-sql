@@ -1,0 +1,92 @@
+[DDL]--------------------------------------------------------------------------------------------------------------
+
+CREATE TABLE users (
+	id SERIAL PRIMARY KEY,
+	fullname VARCHAR NOT NULL,
+	nickname VARCHAR NOT NULL,
+	email VARCHAR UNIQUE NOT NULL,
+	username VARCHAR UNIQUE NOT NULL,
+	password VARCHAR NOT NULL,
+	phone VARCHAR UNIQUE NOT NULL,
+	avatar VARCHAR NOT NULL
+)
+
+CREATE TABLE accounts (
+	id SERIAL PRIMARY KEY,
+	account_no VARCHAR UNIQUE NOT NULL,
+	account_type ACC_TYPE NOT NULL,
+	owner_id INTEGER NOT NULL REFERENCES users(id),
+	balance NUMERIC NOT NULL
+)
+
+CREATE TABLE transactions (
+	id SERIAL PRIMARY KEY,
+	amount NUMERIC NOT NULL,
+	transaction_purpose TRX_PURPOSE NOT NULL,
+	transaction_no VARCHAR UNIQUE NOT NULL,
+	description VARCHAR,
+	datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	sender_id INTEGER NOT NULL REFERENCES accounts(id),
+	receiver_id INTEGER NOT NULL REFERENCES accounts(id),
+	status TRX_STATUS NOT NULL
+)
+
+CREATE TYPE TRX_STATUS AS ENUM (
+	'SUCCESS',
+	'PENDING',
+	'FAILED'
+)
+
+CREATE TYPE ACC_TYPE AS ENUM (
+	'EASYWADIAH',
+	'EASYMUDHARABAH',
+	'TABUNGANBISNIS',
+	'GIROWADIAH',
+	'GIROMUDHARABAH'
+)
+
+CREATE TYPE TRX_PURPOSE AS ENUM (
+	'TRANSFER',
+	'TOPUP'
+)
+
+[DML]--------------------------------------------------------------------------------------------------------------
+
+INSERT INTO users
+(fullname, nickname, email, username, password, phone, avatar) 
+VALUES ('Wahyu Wijiyanto', 'Wahyu', 'wahyu@gmail.com', 'wejhe', 'sandiwahyu', '089637827493', 'https://cdn.discordapp.com/attachments/1351453135067156503/1351453591701032962/FOTO_ID_CARD_-_Copy.jpg?ex=67dc68fd&is=67db177d&hm=964f63160572a56de7d3fea2ab35d968d0b3ab99ee805bf951a4f638522e2fa0&'),
+('Muhammad Kautsar Wijaya', 'Kautsar', 'kautsar@gmail.com', 'kautsar', 'sandikautsar', '085152943817', 'https://cdn.discordapp.com/attachments/1351453135067156503/1351453591701032962/FOTO_ID_CARD_-_Copy.jpg?ex=67dc68fd&is=67db177d&hm=964f63160572a56de7d3fea2ab35d968d0b3ab99ee805bf951a4f638522e2fa0&'),
+('Satriyo Bagus Sefianto', 'Satriyo', 'satriyo@gmail.com', 'yobato', 'sandisatriyo', '089557198262', 'https://cdn.discordapp.com/attachments/1351453135067156503/1351453591701032962/FOTO_ID_CARD_-_Copy.jpg?ex=67dc68fd&is=67db177d&hm=964f63160572a56de7d3fea2ab35d968d0b3ab99ee805bf951a4f638522e2fa0&'),
+('Top-Up Provider', 'Topup', 'topup@gmail.com', 'topup', 'topup', 'topup', 'https://cdn.discordapp.com/attachments/1351453135067156503/1351453591701032962/FOTO_ID_CARD_-_Copy.jpg?ex=67dc68fd&is=67db177d&hm=964f63160572a56de7d3fea2ab35d968d0b3ab99ee805bf951a4f638522e2fa0&')
+
+INSERT INTO accounts
+(account_no, account_type, owner_id, balance) 
+VALUES (7956787656, 'EASYWADIAH', 1, 50000),
+(7957286451, 'TABUNGANBISNIS', 1, 850000000),
+(7959153627, 'EASYWADIAH', 2, 75000),
+(7959927132, 'EASYWADIAH', 3, 50000)
+
+INSERT INTO transactions
+(amount, transaction_purpose, transaction_type, transaction_no, description, sender_id, receiver_id, status) 
+VALUES (75000, 'TRANSFER', 'CREDIT', '8483982948', 'transaksaksi aja ges', 1, 3, 'SUCCESS'),
+(30000, 'TRANSFER', 'CREDIT', '8676395739', 'transaksaksi aja ges', 1, 2, 'SUCCESS'),
+(180000, 'TOPUP', 'DEBIT', '8465475748', 'transaksaksi aja ges', 4, 1, 'SUCCESS'),
+(73000, 'TRANSFER', 'CREDIT', '7378273782', 'transaksaksi aja ges', 2, 3, 'SUCCESS'),
+(80000, 'TRANSFER', 'CREDIT', '8476762646', 'transaksaksi aja ges', 3, 1, 'SUCCESS'),
+(12000, 'TRANSFER', 'CREDIT', '5736362748', 'transaksaksi aja ges', 3, 2, 'SUCCESS')
+
+[QUERY]--------------------------------------------------------------------------------------------------------------
+
+EXPLAIN ANALYZE SELECT
+datetime,
+transaction_purpose,
+CASE WHEN sender_id = 1 THEN receiver_id ELSE sender_id END as FromTo,
+users.fullname,
+description,
+amount
+FROM (
+	SELECT * FROM accounts INNER JOIN transactions ON accounts.id = transactions.sender_id WHERE transactions.sender_id = 1
+	UNION
+	SELECT * FROM accounts INNER JOIN transactions ON accounts.id = transactions.receiver_id WHERE transactions.receiver_id = 1
+) JOIN accounts ON accounts.id = (CASE WHEN sender_id = 1 THEN receiver_id ELSE sender_id END)
+JOIN users ON users.id = accounts.owner_id
